@@ -4,13 +4,14 @@ RANKS_TO_SCORE = {str(n): n for n in range(2, 11)} | {'J': 10, 'Q': 10, 'K': 10,
 RANKS = list(RANKS_TO_SCORE.keys())
 DECK = 4 * RANKS
 
+
 def _score(hand):
-    
+
     score = sum(RANKS_TO_SCORE[card] for card in hand)
 
     if 'A' in hand and score <= 11:
         score += 10
-    
+
     return score
 
 
@@ -68,18 +69,47 @@ class Blackjack:
     _player_hand: list
     _dealer_hand: list
 
+    _finished: bool
+
     _SHOE: Shoe
 
     def __init__(self, shoe: Shoe):
 
         self._SHOE = shoe
-    
+
     def reset(self):
 
         self._player_hand = [self._SHOE.draw(), self._SHOE.draw()]
         self._dealer_hand = [self._SHOE.draw()]
-    
+
+        self._finished = False
+
+    def is_finished(self) -> bool:
+
+        return self._finished
+
+    def observe(self):
+
+        if self._finished:
+            return 'FINISHED'
+
+        has_ace = ('A' in self._player_hand)
+
+        score_obs = sum(RANKS_TO_SCORE[card] for card in self._player_hand)
+
+        if has_ace:
+            score_obs -= 1  # TODO: Explain this.
+
+        return (
+            score_obs,
+            has_ace,
+            self._dealer_hand[0],
+        )
+
     def step(self, action):
+
+        if self._finished:
+            return 0
 
         if action == 'H':
 
@@ -87,39 +117,44 @@ class Blackjack:
 
             if _score(self._player_hand) > 21:
 
-                # TODO: Player busts.
-                ...
-            
-            # TODO: Game continues, zero reward.
-            ...
-            
-        
+                # Player busts.
+                self._finished = True
+                return -1
+
+            return 0
+
         if action == 'S':
 
+            # Once the player stands, the game will always end.
+            self._finished = True
+
+            # Dealer hits until their score is at least 17.
             while _score(self._dealer_hand) < 17:  # TODO: Option for dealer hitting on soft 17.
-
                 self._dealer_hand.append(self._SHOE.draw())
-            
-            if _score(self._dealer_hand) > 21:
 
-                # TODO: Dealer busts.
-                ...
-            
+            if _score(self._dealer_hand) > 21:
+                # Dealer busts.
+                return +1
+
             if _score(self._player_hand) > _score(self._dealer_hand):
 
-                # TODO: Player wins.
-                ...
+                # Player wins.
+                return +1
 
             elif _score(self._dealer_hand) > _score(self._player_hand):
 
-                # TODO: Dealer wins.
-                ...
-            
+                # Dealer wins.
+                return -1
+
             else:
 
-                # TODO: Tie.
-                ...
+                # Tie.
+                return 0
 
-            
+    def _render(self):
 
+        player = str.join(', ', self._player_hand)
+        dealer = self._dealer_hand[0]
 
+        print(f'Player has: {player}')
+        print(f'Dealer has: {dealer}')
