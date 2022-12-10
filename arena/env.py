@@ -2,6 +2,7 @@
 
 
 from abc import ABC, abstractmethod
+from typing import Hashable
 
 
 class Environment(ABC):
@@ -15,7 +16,7 @@ class Environment(ABC):
         ...
 
     @abstractmethod
-    def observe(self):
+    def observe(self) -> Hashable:
         ...
 
     @abstractmethod
