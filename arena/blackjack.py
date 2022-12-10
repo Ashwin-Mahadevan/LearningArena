@@ -1,4 +1,5 @@
 from random import Random
+from arena.env import Environment
 
 RANKS_TO_SCORE = {str(n): n for n in range(2, 11)} | {'J': 10, 'Q': 10, 'K': 10, 'A': 1}
 RANKS = list(RANKS_TO_SCORE.keys())
@@ -64,7 +65,7 @@ class Shoe:
         return self._cards[:self.num_drawn]
 
 
-class Blackjack:
+class Blackjack(Environment):
 
     _player_hand: list
     _dealer_hand: list
