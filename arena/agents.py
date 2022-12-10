@@ -1,6 +1,9 @@
 from collections import defaultdict
+from itertools import count
 from random import Random
 from typing import Hashable
+
+from arena.blackjack import Environment
 
 
 class QAgent:
@@ -30,11 +33,11 @@ class QAgent:
 
         self._RNG = rng
 
-        self._Q = defaultdict(lambda: 0)
+        self._Q = defaultdict(lambda: float('-inf'))
 
-    def select_action(self, state: Hashable, training: bool = False) -> Hashable:
+    def select_action(self, state: Hashable) -> Hashable:
 
-        if training and self._RNG.random() < self.exploration_rate:
+        if self._RNG.random() < self.exploration_rate:
             return self._RNG.choice(self._ACTIONS)
 
         return max(
@@ -55,25 +58,37 @@ class QAgent:
         self._Q[prev_state, prev_action] += self.learning_rate * (td_target - self._Q[prev_state, prev_action])
 
 
-def sample_generator(
-        agent: QAgent,
-        env: object,  # TODO: Environment type.
+def sample_episode(agent: QAgent, env: Environment):
+
+    env.reset()
+
+    next_state = 'START'
+    next_action = 'START'
+
+    while not env.is_finished():
+
+        prev_state = next_state
+        prev_action = next_action
+
+        reward = env.step(prev_action)
+
+        next_state = env.observe()
+        next_action = agent.select_action(next_state, training=True)
+
+        yield (prev_state, prev_action, reward, next_state, next_action)
+
+def sample_episodes(
+    agent: QAgent,  # TODO: Generic agent type.
+    env: Environment,  # TODO: Environment type.
+    num_episodes: int,
 ):
-    while True:
+    if num_episodes > 0:
+        episode_iterator = range(num_episodes)
+    else:
+        episode_iterator = count()
 
-        env.reset()
+    for episode_idx in episode_iterator:
+        
+        yield from sample_episode(agent, env)
 
-        next_state = None
-        next_action = None
 
-        while not env.is_finished():
-
-            prev_action = next_action
-            next_action = agent.select_action(next_state, training=True)
-
-            reward = env.step(next_action)
-
-            prev_state = next_state
-            next_state = env.observe()
-
-            yield (prev_state, prev_action, reward, next_state, next_action)
