@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import count
 from random import Random
@@ -6,16 +7,23 @@ from typing import Hashable
 from arena.blackjack import Environment
 
 
-class QAgent:
+class Agent(ABC):
+
+    _ACTIONS: list[Hashable]
+    _RNG: Random
+
+    @abstractmethod
+    def select_action(self, state: Hashable) -> Hashable:
+        ...
+
+
+class QAgent(Agent):
 
     discount_factor: float
     exploration_rate: float
     learning_rate: float
 
-    _ACTIONS: list[Hashable]
     _Q: dict[tuple[Hashable, Hashable], float]
-
-    _RNG: Random
 
     def __init__(
         self,
@@ -27,11 +35,11 @@ class QAgent:
     ):
 
         self._ACTIONS = actions
+        self._RNG = rng
+
         self.discount_factor = discount_factor
         self.exploration_rate = exploration_rate
         self.learning_rate = learning_rate
-
-        self._RNG = rng
 
         self._Q = defaultdict(lambda: float('-inf'))
 
@@ -58,7 +66,7 @@ class QAgent:
         self._Q[prev_state, prev_action] += self.learning_rate * (td_target - self._Q[prev_state, prev_action])
 
 
-def sample_episode(agent: QAgent, env: Environment):
+def sample_episode(agent: Agent, env: Environment):
 
     env.reset()
 
@@ -73,22 +81,16 @@ def sample_episode(agent: QAgent, env: Environment):
         reward = env.step(prev_action)
 
         next_state = env.observe()
-        next_action = agent.select_action(next_state, training=True)
+        next_action = agent.select_action(next_state)
 
         yield (prev_state, prev_action, reward, next_state, next_action)
 
+
 def sample_episodes(
-    agent: QAgent,  # TODO: Generic agent type.
-    env: Environment,  # TODO: Environment type.
+    agent: Agent,
+    env: Environment,
     num_episodes: int,
 ):
-    if num_episodes > 0:
-        episode_iterator = range(num_episodes)
-    else:
-        episode_iterator = count()
 
-    for episode_idx in episode_iterator:
-        
+    for _ in (range(num_episodes) if num_episodes > 0 else count()):
         yield from sample_episode(agent, env)
-
-
