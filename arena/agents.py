@@ -12,9 +12,42 @@ class Agent(ABC):
     _ACTIONS: list[Hashable]
     _RNG: Random
 
+    def __init__(self, actions: list[Hashable], rng: Random):
+        """
+        Note: Subclasses that override this method should begin by calling super().__init__
+        """
+
+        self._ACTIONS = actions
+        self._RNG = rng
+
     @abstractmethod
     def select_action(self, state: Hashable) -> Hashable:
         ...
+
+
+class CLIUserAgent(Agent):
+
+    _PROMPT: str
+    _ACTION_MAP: dict[str, Hashable]
+
+    def __init__(self, actions: list[Hashable], rng: Random, prompt: str, action_map: dict[str, Hashable]):
+
+        super().__init__(actions, rng)
+
+        self._PROMPT = prompt
+        self._ACTION_MAP = action_map
+
+    def select_action(self, state: Hashable) -> Hashable:
+
+        action = None
+        while not action:
+
+            response = input(self._PROMPT)
+
+            if response in self._ACTION_MAP:
+                action = self._ACTION_MAP[response]
+
+        return action
 
 
 class QAgent(Agent):
@@ -41,7 +74,7 @@ class QAgent(Agent):
         self.exploration_rate = exploration_rate
         self.learning_rate = learning_rate
 
-        self._Q = defaultdict(lambda: float('-inf'))
+        self._Q = defaultdict(lambda: 0)
 
     def select_action(self, state: Hashable) -> Hashable:
 
@@ -70,21 +103,22 @@ def sample_episode(agent: Agent, env: Environment):
 
     env.reset()
 
-    next_state = 'START'
-    next_action = 'START'
+    prev_state = 'START'
+    prev_action = 'START'
+    reward = 0
 
     while not env.is_finished():
-
-        prev_state = next_state
-        prev_action = next_action
-
-        reward = env.step(prev_action)
 
         next_state = env.observe()
         next_action = agent.select_action(next_state)
 
         yield (prev_state, prev_action, reward, next_state, next_action)
 
+        prev_state = next_state
+        prev_action = next_action
+        reward = env.step(prev_action)
+
+    yield (prev_state, prev_action, reward, 'FINISHED', 'FINISHED')
 
 def sample_episodes(
     agent: Agent,
