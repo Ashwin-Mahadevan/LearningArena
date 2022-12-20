@@ -1,5 +1,5 @@
 from random import Random
-from arena.env import Environment
+from env import Environment
 
 RANKS_TO_SCORE = {str(n): n for n in range(2, 11)} | {'J': 10, 'Q': 10, 'K': 10, 'A': 1}
 RANKS = list(RANKS_TO_SCORE.keys())
@@ -29,19 +29,16 @@ class Shoe:
         self._RNG = rng
 
         if num_decks == 0:
-
             self._NAIVE = True
             self._cards = list()
 
         else:
-
             self._NAIVE = False
             self._cards = DECK * num_decks
 
     def draw(self):
 
         if self._NAIVE:
-
             self._cards.append(self._RNG.choice(RANKS))
 
         card = self._cards[self.num_drawn]

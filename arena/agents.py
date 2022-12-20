@@ -4,7 +4,7 @@ from itertools import count
 from random import Random
 from typing import Hashable
 
-from arena.blackjack import Environment
+from blackjack import Blackjack, Environment, Shoe
 
 
 class Agent(ABC):
@@ -30,29 +30,24 @@ class CLIUserAgent(Agent):
     _PROMPT: str
     _ACTION_MAP: dict[str, Hashable]
 
-    def __init__(self, actions: list[Hashable], rng: Random, prompt: str, action_map: dict[str, Hashable]):
+    def __init__(self, rng: Random, prompt: str, action_map: dict[str, Hashable]):
 
-        super().__init__(actions, rng)
+        super().__init__(action_map.keys(), rng)
 
         self._PROMPT = prompt
         self._ACTION_MAP = action_map
 
     def select_action(self, state: Hashable) -> Hashable:
 
-        action = None
-        while not action:
-
+        while True:
             response = input(self._PROMPT)
-
             if response in self._ACTION_MAP:
-                action = self._ACTION_MAP[response]
-
-        return action
+                return self._ACTION_MAP[response]
 
 
 class QAgent(Agent):
 
-    discount_factor: float
+    _DISCOUNT: float
     exploration_rate: float
     learning_rate: float
 
@@ -62,7 +57,7 @@ class QAgent(Agent):
         self,
         actions: list[Hashable],
         rng: Random,
-        discount_factor: float = 1,
+        discount_factor: float = 1.0,
         exploration_rate: float = 0.1,
         learning_rate: float = 0.01,
     ):
@@ -70,7 +65,7 @@ class QAgent(Agent):
         self._ACTIONS = actions
         self._RNG = rng
 
-        self.discount_factor = discount_factor
+        self._DISCOUNT = discount_factor
         self.exploration_rate = exploration_rate
         self.learning_rate = learning_rate
 
@@ -95,7 +90,7 @@ class QAgent(Agent):
         next_action: Hashable,
     ):
 
-        td_target = reward + self.discount_factor * self._Q[next_state, next_action]
+        td_target = reward + self._DISCOUNT * self._Q[next_state, next_action]
         self._Q[prev_state, prev_action] += self.learning_rate * (td_target - self._Q[prev_state, prev_action])
 
 
@@ -119,12 +114,3 @@ def sample_episode(agent: Agent, env: Environment):
         reward = env.step(prev_action)
 
     yield (prev_state, prev_action, reward, 'FINISHED', 'FINISHED')
-
-def sample_episodes(
-    agent: Agent,
-    env: Environment,
-    num_episodes: int,
-):
-
-    for _ in (range(num_episodes) if num_episodes > 0 else count()):
-        yield from sample_episode(agent, env)
